@@ -19,6 +19,11 @@
 #define _QTVERSION 5
 #endif
 
+//#if (_QTVERSION == 5)
+//
+//#else
+//#endif
+
 enum LogLevel {
     Debug = 0,
     Info = 1,
@@ -45,6 +50,7 @@ private:
     static QSharedPointer<QTextStream> stream;
     static const std::map<LogLevel, QString> Levels;
     inline static QString BuildMessage(LogLevel level, const QString& message);
+    static void deleteOldLogs(const QString& path);
 };
 
 

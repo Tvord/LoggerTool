@@ -5,6 +5,9 @@
 #include "LoggingTool.h"
 #include <QElapsedTimer>
 #include <QDebug>
+#include <QTextCodec>
+#include <QFileInfo>
+#include <QDir>
 
 const std::map<LogLevel, QString> LoggingTool::Levels{{LogLevel::Debug, "Debug"},
         {LogLevel::Info, "Info"}, {LogLevel::Warning, "Warning"}, {LogLevel::Error,"Error"}};
@@ -58,16 +61,33 @@ QString LoggingTool::BuildMessage(LogLevel level, const QString &message) {
 }
 
 void LoggingTool::init(LogLevel minimalLevel, const QString &path) {
+    deleteOldLogs(path);
     currentLevel = minimalLevel;
+    QTextCodec::setCodecForLocale(QTextCodec::codecForName("Windows-1251"));
 #if (_QTVERSION == 5)
     file.reset(new QFile(path));
 #else
     file = QSharedPointer<QFile>(new QFile(path));
 #endif
-    file->open(QIODevice::WriteOnly);
+    if (!file->open(QIODevice::WriteOnly))
+        qDebug() << "Something wring with opening logfile: " << path;
 #if (_QTVERSION == 5)
     stream.reset(new QTextStream(&*file));
 #else
     stream = QSharedPointer<QTextStream>(new QTextStream(&*file));
 #endif
+    stream->setCodec("UTF-8");
+}
+
+void LoggingTool::deleteOldLogs(const QString &path) {
+    auto dirParts = path.split('/');
+    dirParts.removeLast();
+    auto dirPath = dirParts.join("/");
+    auto dirInfo = QDir(dirPath);
+    for (auto& fileInfo : dirInfo.entryInfoList(QStringList("*.log"))) {
+        if (fileInfo.created().daysTo(QDateTime::currentDateTime()) > 7) {
+            QFile f(fileInfo.absoluteFilePath());
+            f.remove();
+        }
+    }
 }
